@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Emisora PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#121212">
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .player-card {
+      background: #1e1e1e;
+      padding: 30px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      width: 280px;
+    }
+    h2 {
+      margin: 0 0 8px 0;
+      font-size: 22px;
+    }
+    p {
+      color: #b3b3b3;
+      margin: 0 0 24px 0;
+      font-size: 14px;
+    }
+    .btn {
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      box-sizing: border-box;
+      transition: transform 0.2s ease;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    #playBtn {
+      background: #1db954;
+    }
+    #installBtn {
+      background: #007bff;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="player-card">
+    <h2>Radio Hosana</h2>
+    <p>Transmitiendo en Vivo</p>
+    
+    <!-- AUDIO PLAYER (Reemplaza la URL por la tuya en producción) -->
+    <audio id="radioAudio" src="https://whmsonic.playerfullhd.com/8110/stream" preload="none"></audio>
+    
+    <!-- BOTÓN DE REPRODUCCIÓN -->
+    <button id="playBtn" class="btn" onclick="togglePlay()">Reproducir</button>
+    
+    <!-- BOTÓN DE INSTALACIÓN PWA (Oculto por defecto) -->
+    <button id="installBtn" class="btn" style="display: none;">Instalar Aplicación</button>
+  </div>
+
+  <script>
+    const audio = document.getElementById('radioAudio');
+    const playBtn = document.getElementById('playBtn');
+    const installBtn = document.getElementById('installBtn');
+    let deferredPrompt;
+
+    // Control de reproducción de audio
+    function togglePlay() {
+      if (audio.paused) {
+        audio.play();
+        playBtn.innerText = 'Pausar';
+        playBtn.style.background = '#e91429'; // Cambia a rojo al pausar
+      } else {
+        audio.pause();
+        playBtn.innerText = 'Reproducir';
+        playBtn.style.background = '#1db954'; // Vuelve a verde
+      }
+    }
+
+    // Registro del Service Worker obligatorio para PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('Service Worker registrado con éxito.'))
+        .catch((err) => console.log('Error al registrar Service Worker:', err));
+    }
+
+    // Captura del evento de instalación de la PWA
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Evita que el navegador lance su aviso automático de inmediato
+      e.preventDefault();
+      // Guarda el evento para ejecutarlo cuando el usuario presione tu botón
+      deferredPrompt = e;
+      // Hace visible tu botón personalizado de instalación
+      installBtn.style.display = 'block';
+    });
+
+    // Acción al presionar el botón de instalación
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        // Lanza la ventana emergente nativa de instalación del celular/PC
+        deferredPrompt.prompt();
+        // Espera la respuesta del usuario (Aceptar/Cancelar)
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`El usuario eligió: ${outcome}`);
+        // Limpia el evento guardado
+        deferredPrompt = null;
+        // Esconde el botón tras la acción
+        installBtn.style.display = 'none';
+      }
+    });
+
+    // Oculta el botón de forma definitiva si el usuario ya la instaló previamente
+    window.addEventListener('appinstalled', () => {
+      console.log('¡Aplicación PWA instalada con éxito!');
+      installBtn.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
